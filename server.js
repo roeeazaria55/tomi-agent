@@ -1,22 +1,27 @@
-// server.js - הפעלה של סוכן טומי עם GPT-5
+// server.js - הפעלת סוכן טומי עם GPT-5
 
 // 1. טעינת ספריות
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import fs from "fs";
+import express from "express";
 
-// טוען את קובץ הסביבה (.env)
+// 2. הגדרת אפליקציית Express
+const app = express();
+app.use(express.json());
+
+// 3. טעינת קובץ הסביבה (.env)
 dotenv.config();
 
-// 2. טעינת נתוני המסעדה מתוך הקובץ JSON
-const restaurantData = JSON.parse(fs.readFileSync("./restaurant-data.json", "utf-8"));
+// 4. טעינת נתוני המסעדה מקובץ JSON
+const restaurantData = JSON.parse(fs.readFileSync("./restaurant-data.json"));
 
-// 3. פתיחת חיבור ל-GPT-5 עם ה-API
+// 5. פתיחת חיבור ל-API של GPT-5
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 4. פונקציה שבודקת את החיבור ומריצה שאלה לדוגמה
+// 6. פונקציה שבודקת את החיבור ושולחת שאלה לדוגמה
 async function testAPI() {
   try {
     const response = await openai.chat.completions.create({
@@ -25,24 +30,35 @@ async function testAPI() {
         {
           role: "system",
           content: `
-            אתה טומי, סוכן שירות של מסעדת טומי רול בר.
-            אתה מדבר עברית שוטפת ובנימוס, ועונה ללקוחות לגבי המנות, שעות הפעילות והמבצעים.
-            זה המידע של המסעדה:
-            ${JSON.stringify(restaurantData, null, 2)}
+          אתה טומי, סוכן שירות של מסעדת טומי רול בר.
+          ענה ללקוחות לגבי תפריטים, שעות פעילות ומבצעים.
+          זה המידע של המסעדה:
+          ${JSON.stringify(restaurantData, null, 2)}
           `,
         },
-        { role: "user", content: "שלום טומי, מה שעות הפתיחה שלכם?" },
+        { role: "user", content: "מה שעות הפתיחה שלכם?" },
       ],
     });
 
-    // 5. הצגת התשובה בקונסול ושמירה לקובץ
-    fs.writeFileSync("output.txt", response.choices[0].message.content, "utf-8");
-    console.log("✅ תשובת GPT-5 נשמרה בקובץ output.txt (בעברית ישרה)");
+    // הצגת התשובה בקונסול ושמירה לקובץ
+    const answer = response.choices[0].message.content;
+    fs.writeFileSync("output.txt", answer);
+    console.log("✅ תשובת GPT-5 נשמרה בקובץ output.txt");
 
   } catch (err) {
     console.error("❌ שגיאה בחיבור או ב-API Key:", err.message);
   }
 }
 
-// 6. הפעלת הפונקציה
+// 7. הפעלת הפונקציה לבדיקה
 testAPI();
+
+// 8. הפעלת שרת והאזנה לפורט של Render
+const PORT = process.env.PORT || 3000;
+app.get("/", (req, res) => {
+  res.send("✅ Tomi Agent server is running!");
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 השרת פועל ומאזין על פורט ${PORT}`);
+});
