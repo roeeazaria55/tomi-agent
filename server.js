@@ -1,4 +1,4 @@
-// server.js - Twilio Voice + GPT-5 integration (תיקון TwiML)
+// server.js - Twilio Voice + GPT-5 integration (תיקון פורט ו-TwiML)
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import express from "express";
@@ -8,13 +8,14 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// חיבור ל-GPT-5
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// בדיקה פשוטה
+// בדיקה פשוטה שהשרת פעיל
 app.get("/", (req, res) => {
-  res.send("✅ שרת טומי פעיל עם Twilio Voice!");
+  res.send("✅ שרת טומי פעיל ומחובר לטווילו!");
 });
 
 // ✅ קבלת שיחות טלפון נכנסות
@@ -37,10 +38,11 @@ app.post("/voice", async (req, res) => {
           { role: "user", content: callerSpeech },
         ],
       });
+
       replyText = gptResponse.choices[0].message.content.trim();
     }
 
-    // ✅ שולחים תגובה תקנית ל-Twilio
+    // ✅ תגובה תקינה ל-Twilio (TwiML)
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Ziv" language="he-IL">${replyText}</Say>
@@ -62,7 +64,8 @@ app.post("/voice", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () =>
-  console.log(`🚀 שרת מאזין לטווילו על פורט ${PORT}`)
-);
+// ✅ האזנה לפורט הנכון (Render משתמש ב-10000)
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`🚀 השרת מאזין לטווילו על פורט ${PORT}`);
+});
