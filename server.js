@@ -1,6 +1,4 @@
-// ✅ server.js — גרסה יציבה סופית עם ניקוי טקסט מ-GPT
-// Twilio Voice + Render + GPT-5 + Debug מלא
-
+// ✅ server.js — גרסה יציבה סופית עם תיקון שפת Gather + ניקוי טקסט
 import express from "express";
 import dotenv from "dotenv";
 import OpenAI from "openai";
@@ -16,7 +14,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 🌍 בדיקה פשוטה (בדפדפן)
+// 🌍 בדיקה בדפדפן
 app.get("/", (req, res) => {
   console.log("🌍 נשלחה בקשת GET ל-root");
   res.send("✅ שרת טומי פעיל ומחובר לטווילו בהצלחה!");
@@ -58,13 +56,13 @@ app.post("/voice", async (req, res) => {
       console.log("🤖 תשובת GPT אחרי ניקוי:", replyText);
     }
 
-    // 🗣️ בונים את תגובת ה-TwiML
+    // 🗣️ בונים את תגובת ה-TwiML (שפה רק ב-Say, לא ב-Gather)
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="alice" language="he-IL">${replyText}</Say>
+  <Say voice="Polly.Ziv" language="he-IL">${replyText}</Say>
   <Pause length="1"/>
   <Gather input="speech" action="/voice" method="POST" timeout="5">
-    <Say voice="alice" language="he-IL">אני מקשיב...</Say>
+    <Say voice="Polly.Ziv" language="he-IL">אני מקשיב...</Say>
   </Gather>
 </Response>`;
 
@@ -78,14 +76,14 @@ app.post("/voice", async (req, res) => {
     res.set("Content-Type", "text/xml");
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="alice" language="he-IL">
+  <Say voice="Polly.Ziv" language="he-IL">
     אירעה שגיאה בשרת. נסה שוב מאוחר יותר.
   </Say>
 </Response>`);
   }
 });
 
-// 🚀 הפעלת השרת ב-Render
+// 🚀 הפעלת השרת
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 שרת טומי מאזין לטווילו על פורט ${PORT}`);
