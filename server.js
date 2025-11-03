@@ -1,4 +1,4 @@
-// ✅ server.js — גרסה מעודכנת עובדת בענן Render עם Twilio + GPT-5
+// ✅ server.js — גרסה עם DEBUG מלא לטווילו + GPT-5 + Render
 
 import express from "express";
 import dotenv from "dotenv";
@@ -10,23 +10,29 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// ✅ אתחול GPT
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ✅ בדיקה מהירה שהשרת פעיל
+// 🔹 נקודת בדיקה פשוטה (בדפדפן)
 app.get("/", (req, res) => {
+  console.log("🌍 נשלחה בקשת GET ל-root");
   res.send("✅ שרת טומי פעיל ומחובר לטווילו בהצלחה!");
 });
 
-// ✅ נקודת קצה לשיחות טלפון נכנסות מטווילו
+// 🔹 Twilio שולחת לפה את כל שיחות הטלפון
 app.post("/voice", async (req, res) => {
+  console.log("📞 התקבלה בקשת POST מ-Twilio לנתיב /voice");
+  console.log("🔸 גוף הבקשה (req.body):", req.body);
+
   try {
     const callerSpeech = req.body.SpeechResult || req.body.Digits || "";
-    console.log("🎤 דיבור מהמתקשר:", callerSpeech);
+    console.log("🎤 טקסט שזוהה מהמתקשר:", callerSpeech);
 
     let replyText = "שלום, כאן טומי. איך אפשר לעזור לך היום?";
 
+    // ✅ בקשה ל-GPT-5 רק אם באמת נאמר משהו
     if (callerSpeech) {
       const gptResponse = await openai.chat.completions.create({
         model: "gpt-5",
@@ -41,9 +47,10 @@ app.post("/voice", async (req, res) => {
       });
 
       replyText = gptResponse.choices[0].message.content.trim();
+      console.log("🤖 תשובת GPT:", replyText);
     }
 
-    // ✅ תשובת TwiML תקינה לטווילו
+    // ✅ נבנה תשובת Twilio בפורמט XML (TwiML)
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Ziv" language="he-IL">${replyText}</Say>
@@ -52,6 +59,9 @@ app.post("/voice", async (req, res) => {
     <Say voice="Polly.Ziv" language="he-IL">אני מקשיב...</Say>
   </Gather>
 </Response>`;
+
+    console.log("📤 נשלחת תשובה ל-Twilio בפורמט TwiML:");
+    console.log(twimlResponse);
 
     res.set("Content-Type", "text/xml");
     res.send(twimlResponse);
@@ -65,7 +75,7 @@ app.post("/voice", async (req, res) => {
   }
 });
 
-// ✅ מאזין לפורט של Render (חשוב!)
+// 🔹 הגדרת פורט עבור Render
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 שרת טומי מאזין לטווילו על פורט ${PORT}`);
