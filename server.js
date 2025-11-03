@@ -1,4 +1,4 @@
-// ✅ server.js — גרסה יציבה סופית עם תיקון שפת Gather + ניקוי טקסט
+// ✅ server.js — גרסה סופית עם תמיכה מלאה בטווילו + Render + GPT-5 (תיקון שפה)
 import express from "express";
 import dotenv from "dotenv";
 import OpenAI from "openai";
@@ -9,12 +9,12 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// 🧠 אתחול OpenAI
+// 🧠 אתחול GPT
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 🌍 בדיקה בדפדפן
+// 🌍 בדיקה פשוטה
 app.get("/", (req, res) => {
   console.log("🌍 נשלחה בקשת GET ל-root");
   res.send("✅ שרת טומי פעיל ומחובר לטווילו בהצלחה!");
@@ -31,7 +31,7 @@ app.post("/voice", async (req, res) => {
 
     let replyText = "שלום, כאן טומי. איך אפשר לעזור לך היום?";
 
-    // 🤖 שולחים ל-GPT-5 רק אם המשתמש באמת דיבר
+    // 🤖 נשלח ל-GPT-5 רק אם באמת נאמר משהו
     if (callerSpeech) {
       const gptResponse = await openai.chat.completions.create({
         model: "gpt-5",
@@ -45,24 +45,25 @@ app.post("/voice", async (req, res) => {
         ],
       });
 
-      // ✅ ניקוי התשובה לפני הכנסת ל-Say
+      // ✅ ניקוי עמוק של הטקסט לפני Twilio
       replyText = gptResponse.choices[0].message.content
-        .replace(/[<>]/g, "")        // מסיר סוגריים חדים
-        .replace(/["']/g, "")        // מסיר גרשיים
-        .replace(/[\n\r]/g, " ")     // מחליף שורות ברווח
-        .replace(/[^\u0000-\u007F\u0590-\u05FF\s.,!?]/g, "") // מסיר אמוג'ים ותווים זרים
+        .replace(/[<>]/g, "")
+        .replace(/["']/g, "")
+        .replace(/[\n\r]/g, " ")
+        .replace(/[^\u0000-\u007F\u0590-\u05FF\s.,!?]/g, "")
+        .replace(/&/g, "and")
         .trim();
 
       console.log("🤖 תשובת GPT אחרי ניקוי:", replyText);
     }
 
-    // 🗣️ בונים את תגובת ה-TwiML (שפה רק ב-Say, לא ב-Gather)
+    // 🗣️ יצירת תגובת TwiML תקינה
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Ziv" language="he-IL">${replyText}</Say>
+  <Say voice="Polly.Nicole" language="en-US">${replyText}</Say>
   <Pause length="1"/>
   <Gather input="speech" action="/voice" method="POST" timeout="5">
-    <Say voice="Polly.Ziv" language="he-IL">אני מקשיב...</Say>
+    <Say voice="Polly.Nicole" language="en-US">I am listening...</Say>
   </Gather>
 </Response>`;
 
@@ -76,8 +77,8 @@ app.post("/voice", async (req, res) => {
     res.set("Content-Type", "text/xml");
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Ziv" language="he-IL">
-    אירעה שגיאה בשרת. נסה שוב מאוחר יותר.
+  <Say voice="Polly.Nicole" language="en-US">
+    Sorry, there was a problem with the server. Please try again later.
   </Say>
 </Response>`);
   }
