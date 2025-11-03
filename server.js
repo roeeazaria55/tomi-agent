@@ -1,4 +1,5 @@
-// ✅ server.js — גרסה סופית: Twilio Voice + GPT-5 + Render + Debug מלא
+// ✅ server.js — גרסה יציבה סופית עם ניקוי טקסט מ-GPT
+// Twilio Voice + Render + GPT-5 + Debug מלא
 
 import express from "express";
 import dotenv from "dotenv";
@@ -10,18 +11,18 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// 🎯 אתחול OpenAI
+// 🧠 אתחול OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 🌍 בדיקת תקינות (לפתיחה בדפדפן)
+// 🌍 בדיקה פשוטה (בדפדפן)
 app.get("/", (req, res) => {
   console.log("🌍 נשלחה בקשת GET ל-root");
   res.send("✅ שרת טומי פעיל ומחובר לטווילו בהצלחה!");
 });
 
-// 📞 Twilio שולחת לכאן שיחות טלפון
+// 📞 Twilio שולחת לכאן את השיחות
 app.post("/voice", async (req, res) => {
   console.log("📞 התקבלה בקשת POST מ-Twilio לנתיב /voice");
   console.log("🔸 גוף הבקשה:", req.body);
@@ -32,7 +33,7 @@ app.post("/voice", async (req, res) => {
 
     let replyText = "שלום, כאן טומי. איך אפשר לעזור לך היום?";
 
-    // 🤖 שולחים ל-GPT-5 רק אם המשתמש דיבר
+    // 🤖 שולחים ל-GPT-5 רק אם המשתמש באמת דיבר
     if (callerSpeech) {
       const gptResponse = await openai.chat.completions.create({
         model: "gpt-5",
@@ -40,17 +41,24 @@ app.post("/voice", async (req, res) => {
           {
             role: "system",
             content:
-              "אתה טומי, נציג שירות קולי אדיב של מסעדת רול בר. דבר בעברית פשוטה וברורה.",
+              "אתה טומי, נציג שירות קולי אדיב של מסעדת רול בר. דבר בעברית פשוטה וברורה בלבד.",
           },
           { role: "user", content: callerSpeech },
         ],
       });
 
-      replyText = gptResponse.choices[0].message.content.trim();
-      console.log("🤖 תשובת GPT-5:", replyText);
+      // ✅ ניקוי התשובה לפני הכנסת ל-Say
+      replyText = gptResponse.choices[0].message.content
+        .replace(/[<>]/g, "")        // מסיר סוגריים חדים
+        .replace(/["']/g, "")        // מסיר גרשיים
+        .replace(/[\n\r]/g, " ")     // מחליף שורות ברווח
+        .replace(/[^\u0000-\u007F\u0590-\u05FF\s.,!?]/g, "") // מסיר אמוג'ים ותווים זרים
+        .trim();
+
+      console.log("🤖 תשובת GPT אחרי ניקוי:", replyText);
     }
 
-    // 🗣️ בונים את תגובת ה-TwiML ל-Twilio
+    // 🗣️ בונים את תגובת ה-TwiML
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="alice" language="he-IL">${replyText}</Say>
@@ -60,7 +68,7 @@ app.post("/voice", async (req, res) => {
   </Gather>
 </Response>`;
 
-    console.log("📤 נשלחה תשובת TwiML ל-Twilio:\n", twiml);
+    console.log("📤 נשלחת תשובת TwiML ל-Twilio:\n", twiml);
 
     res.set("Content-Type", "text/xml");
     res.send(twiml);
@@ -77,7 +85,7 @@ app.post("/voice", async (req, res) => {
   }
 });
 
-// 🚀 מאזין לפורט של Render
+// 🚀 הפעלת השרת ב-Render
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 שרת טומי מאזין לטווילו על פורט ${PORT}`);
